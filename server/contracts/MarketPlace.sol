@@ -58,6 +58,7 @@ contract MarketPlace
     }
 
     //listing a NFT
+    //input the duration as zero if it's a fixed price listing
     function listing(IERC721 nft,uint tokenId,uint price,ListingType listingType,uint duration) public 
     {
         itemId++;
@@ -70,9 +71,9 @@ contract MarketPlace
             tokenId,
             price*1 ether,
             block.timestamp+duration,
-            address(0), //buyer address
+            address(0), //highest bidder
             listingType,
-            false
+            false //item's status, whether it's sold or not 
         );
 
         nft.approve(address(this), tokenId);
@@ -107,7 +108,8 @@ contract MarketPlace
     function purchase(uint _itemId) public payable 
     {
         require(_itemId<=itemId && _itemId>0,"Item doesn't exist");
-        require(items[_itemId].sold==false,"NFT isn't for purchase");
+        require(block.timestamp>items[_itemId].duration,"Auction hasn't ended");
+        require(items[_itemId].sold==false,"NFT already sold");
         require(msg.value==items[_itemId].price,"Send the correct amount");
         
         //transfer money to the nft seller
