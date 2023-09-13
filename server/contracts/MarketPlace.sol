@@ -12,8 +12,8 @@ contract MarketPlace
         Auction
     }
 
-    uint public fee;
-    address public manager;
+    uint public feePercentage;
+    address payable public manager;
     uint public itemId;
 
     struct item
@@ -45,51 +45,58 @@ contract MarketPlace
         address buyer,
         uint tokenId,
         uint price,
-        uint sellerFees
+        uint finalPrice
     );
+
+    modifier onlyOwner
+    {
+        require(msg.sender==manager,"Only the manaer can transfer");
+        _;
+    }
 
     //itemId=>Item
     mapping(uint=>item) public items;
 
     constructor(uint _fee)
     {
-        fee=_fee;
-        manager=msg.sender;
+        
+        feePercentage=_fee;
+        manager=payable(msg.sender);
     }
 
     //listing a NFT
     //input the duration as zero if it's a fixed price listing
     function listing(IERC721 nft,uint tokenId,uint price,ListingType listingType,uint duration) public 
     {
-        itemId++;
+        require(msg.sender==nft.ownerOf(tokenId),"You're not the owner of the NFT");
 
-        items[itemId]=item
-        (
-            nft,
-            payable(msg.sender), //seller address
-            itemId,
-            tokenId,
-            price*1 ether,
-            block.timestamp+duration,
-            address(0), //highest bidder
-            listingType,
-            false //item's status, whether it's sold or not 
-        );
+            itemId++;
+            
+            items[itemId]=item
+            (
+                nft,
+                payable(msg.sender), //seller address
+                itemId,
+                tokenId,
+                (price*1 ether),
+                block.timestamp+duration,
+                address(0), //highest bidder
+                listingType,
+                false //item's status, whether it's sold or not 
+            );
 
-        nft.approve(address(this), tokenId);
-
-        emit NftListed
-        (
-            address(nft), 
-            tokenId, 
-            price, 
-            listingType, 
-            duration
-        );
+            emit NftListed
+            (
+                address(nft), 
+                tokenId, 
+                price, 
+                listingType, 
+                duration
+            );
     }
 
-    //check the curent highest bid 
-    function currentHighestBid(uint _itemId) public view returns(uint)
+    //returns price of each nft after the seller price is added along with the marketplace fee
+    function currentPrice(uint _itemId) public view returns(uint)
     {
         return items[_itemId].price;
     }
@@ -104,6 +111,12 @@ contract MarketPlace
         items[_itemId].highestBidder=msg.sender;
     }
 
+    //check highest bidder
+    function highestBidder(uint itemID) public view returns(address)
+    {
+        return items[itemID].highestBidder;
+    }
+
     //purchase the NFT
     function purchase(uint _itemId) public payable 
     {
@@ -113,22 +126,41 @@ contract MarketPlace
         require(msg.value==items[_itemId].price,"Send the correct amount");
         
         //transfer money to the nft seller
-        uint sellerFees; 
-        sellerFees=((100-fee)/100)*msg.value;
-        items[_itemId].seller.transfer(sellerFees);
+        uint finalPrice;
+        finalPrice= ((100-feePercentage)*(items[_itemId].price))/100;
+        items[_itemId].seller.transfer(finalPrice);
         items[_itemId].sold=true;
 
         //transfer the nft to the new owner
-        items[_itemId].nft.transferFrom(items[_itemId].seller,msg.sender,items[_itemId].tokenId);
+        if(items[_itemId].listingType==ListingType.Fixed)
+        {
+            items[_itemId].nft.transferFrom(items[_itemId].seller,msg.sender,items[_itemId].tokenId);
+        }
+        else
+        {
+            require(items[_itemId].highestBidder==msg.sender);
+            items[_itemId].nft.transferFrom(items[_itemId].seller,msg.sender,items[_itemId].tokenId);
+        }
         
         emit NftPurchased
         (
             address(items[_itemId].nft),
-             items[_itemId].seller, 
-             msg.sender, 
-             items[_itemId].tokenId, 
-             items[_itemId].price, 
-             sellerFees
+            items[_itemId].seller, 
+            msg.sender, 
+            items[_itemId].tokenId, 
+            items[_itemId].price,
+            finalPrice
         );
+    }
+
+    //send money to the manager
+    function transferToManager() public onlyOwner
+    { 
+        manager.transfer(address(this).balance);
+    }
+
+    function checkManagerBalace() public view onlyOwner returns(uint)
+    {
+        return manager.balance; 
     }
 }
