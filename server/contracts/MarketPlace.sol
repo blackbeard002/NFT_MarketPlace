@@ -59,13 +59,13 @@ contract MarketPlace
 
     constructor(uint _fee)
     {
-        
         feePercentage=_fee;
         manager=payable(msg.sender);
     }
 
     //listing a NFT
     //input the duration as zero if it's a fixed price listing
+    //approve() should be called from ERC721 contract where the NFT was minted
     function listing(IERC721 nft,uint tokenId,uint price,ListingType listingType,uint duration) public 
     {
         require(msg.sender==nft.ownerOf(tokenId),"You're not the owner of the NFT");
@@ -102,6 +102,7 @@ contract MarketPlace
     }
 
     //place bids
+    //bids placed should be whole numbers and in ethers
     function bid(uint _bid,uint _itemId) public 
     {
         require(items[_itemId].listingType==ListingType.Auction,"This item is under direct purchase");
