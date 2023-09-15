@@ -68,7 +68,7 @@ contract MarketPlace
     //approve() should be called from ERC721 contract where the NFT was minted
     function listing(IERC721 nft,uint tokenId,uint price,ListingType listingType,uint duration) public 
     {
-        require(msg.sender==nft.ownerOf(tokenId),"You're not the owner of the NFT");
+        //require(msg.sender==nft.ownerOf(tokenId),"You're not the owner of the NFT");
 
             itemId++;
             
