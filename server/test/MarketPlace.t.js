@@ -30,7 +30,7 @@ describe("MarketPlace",()=>{
     });
 
     //List 2 NFT's
-    describe("2:Listing:Fixed",()=>{   
+    describe("2:Listing",()=>{   
         it("List a NFT for fixed price:",async()=>{
           const tx=await marketplace.listing(nft.address,2,1,0,0);
           await tx.wait();
@@ -45,11 +45,11 @@ describe("MarketPlace",()=>{
         });
 
         it("List a NFT for Auction",async()=>{
-          const tx2=await marketplace.listing(nft.address,3,5,1,180);
+          const tx2=await marketplace.listing(nft.address,2,5,1,180);
           await tx2.wait();
           const [event2]= await marketplace.queryFilter('NftListed');
           expect(event2.args.nft).to.equal(nft.address);
-          expect(event2.args.tokenId).to.equal(3);
+          expect(event2.args.tokenId).to.equal(2);
           expect(event2.args.price).to.equal(5);
           expect(event2.args.listingType).to.equal(1);
           expect(event2.args.duration).to.equal(180);
@@ -75,11 +75,43 @@ describe("MarketPlace",()=>{
       });
     });
 
-    // describe("Auction and purchase",()=>{
-      
+    // describe("4:Auction and purchase",()=>{
+    //   it("Place Bids and purchase",async()=>{
+    //     const tx=await marketplace.listing(nft.address,1,5,1,5);
+    //     await tx.wait();
+    //     await nft.connect(accounts[0]).approve(marketplace.address,1);
+    //     //place bids
+    //     await marketplace.connect(accounts[1]).bid(6,1);
+    //     await expect(await marketplace.currentPrice(1)).to.equal(ethers.utils.parseEther("6"));
+    //     await expect(marketplace.connect(accounts[2]).bid(1,1)).to.be.revertedWith("Your bid is lower than the current highest bid");
+    //     await marketplace.connect(accounts[2]).bid(10,1);
+    //     await expect(await marketplace.currentPrice(1)).to.equal(ethers.utils.parseEther("10"));
+    //     await expect(marketplace.connect(accounts[2]).purchase(1,{value:ethers.utils.parseEther("10")})).to.be.revertedWith("Auction hasn't ended");
+    //     //delays time
+    //     await new Promise(resolve => setTimeout(resolve, 5 * 1000));
+    //     //purchase
+    //     const buy=await marketplace.connect(accounts[2]).purchase(1,{value:ethers.utils.parseEther("10")});
+    //     await buy.wait();
+    //     const [event]= await marketplace.queryFilter('NftPurchased');
+    //     expect(await nft.ownerOf(1)).to.equal(event.args.buyer);
+    //   });
     // });
 
-    // describe("Transfer funds to manager",()=>{
-      
-    // });
+    describe("5:Transfer funds to manager",()=>{
+      it("Transfer funds",async()=>{
+          const tx=await marketplace.listing(nft.address,1,10,0,0);
+          await tx.wait();
+          await nft.connect(accounts[0]).approve(marketplace.address,1);
+          const val=ethers.utils.parseEther("10");
+          const tx2=await marketplace.connect(accounts[1]).purchase(1,{value:val});
+          await tx2.wait();
+          await expect(marketplace.connect(accounts[1]).checkManagerBalance()).to.be.revertedWith("Only the manaer can transfer");
+          //await expect(marketplace.checkManagerBalance()).to.be.equal(0);
+          console.log(await marketplace.checkManagerBalance());
+          console.log(await ethers.provider.getBalance(accounts[0]));
+          const [event]= await marketplace.queryFilter('NftPurchased');
+          //console.log(event.args.finalPrice);
+           
+      });
+    });
 });

@@ -68,8 +68,7 @@ contract MarketPlace
     //approve() should be called from ERC721 contract where the NFT was minted
     function listing(IERC721 nft,uint tokenId,uint price,ListingType listingType,uint duration) public 
     {
-        //comment the require while testing on hardhat.works fine when tested on remix
-        //require(msg.sender==nft.ownerOf(tokenId),"You're not the owner of the NFT");
+        require(msg.sender==nft.ownerOf(tokenId),"You're not the owner of the NFT");
 
             itemId++;
             
@@ -161,7 +160,7 @@ contract MarketPlace
         manager.transfer(address(this).balance);
     }
 
-    function checkManagerBalace() public view onlyOwner returns(uint)
+    function checkManagerBalance() public view onlyOwner returns(uint)
     {
         return manager.balance; 
     }
