@@ -50,7 +50,7 @@ contract MarketPlace
 
     modifier onlyOwner
     {
-        require(msg.sender==manager,"Only the manaer can transfer");
+        require(msg.sender==manager,"Only the manaer can call this");
         _;
     }
 

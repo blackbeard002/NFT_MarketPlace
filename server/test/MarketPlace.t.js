@@ -75,27 +75,27 @@ describe("MarketPlace",()=>{
       });
     });
 
-    // describe("4:Auction and purchase",()=>{
-    //   it("Place Bids and purchase",async()=>{
-    //     const tx=await marketplace.listing(nft.address,1,5,1,5);
-    //     await tx.wait();
-    //     await nft.connect(accounts[0]).approve(marketplace.address,1);
-    //     //place bids
-    //     await marketplace.connect(accounts[1]).bid(6,1);
-    //     await expect(await marketplace.currentPrice(1)).to.equal(ethers.utils.parseEther("6"));
-    //     await expect(marketplace.connect(accounts[2]).bid(1,1)).to.be.revertedWith("Your bid is lower than the current highest bid");
-    //     await marketplace.connect(accounts[2]).bid(10,1);
-    //     await expect(await marketplace.currentPrice(1)).to.equal(ethers.utils.parseEther("10"));
-    //     await expect(marketplace.connect(accounts[2]).purchase(1,{value:ethers.utils.parseEther("10")})).to.be.revertedWith("Auction hasn't ended");
-    //     //delays time
-    //     await new Promise(resolve => setTimeout(resolve, 5 * 1000));
-    //     //purchase
-    //     const buy=await marketplace.connect(accounts[2]).purchase(1,{value:ethers.utils.parseEther("10")});
-    //     await buy.wait();
-    //     const [event]= await marketplace.queryFilter('NftPurchased');
-    //     expect(await nft.ownerOf(1)).to.equal(event.args.buyer);
-    //   });
-    // });
+    describe("4:Auction and purchase",()=>{
+      it("Place Bids and purchase",async()=>{
+        const tx=await marketplace.listing(nft.address,1,5,1,5);
+        await tx.wait();
+        await nft.connect(accounts[0]).approve(marketplace.address,1);
+        //place bids
+        await marketplace.connect(accounts[1]).bid(6,1);
+        await expect(await marketplace.currentPrice(1)).to.equal(ethers.utils.parseEther("6"));
+        await expect(marketplace.connect(accounts[2]).bid(1,1)).to.be.revertedWith("Your bid is lower than the current highest bid");
+        await marketplace.connect(accounts[2]).bid(10,1);
+        await expect(await marketplace.currentPrice(1)).to.equal(ethers.utils.parseEther("10"));
+        await expect(marketplace.connect(accounts[2]).purchase(1,{value:ethers.utils.parseEther("10")})).to.be.revertedWith("Auction hasn't ended");
+        //delays time
+        await new Promise(resolve => setTimeout(resolve, 5 * 1000));
+        //purchase
+        const buy=await marketplace.connect(accounts[2]).purchase(1,{value:ethers.utils.parseEther("10")});
+        await buy.wait();
+        const [event]= await marketplace.queryFilter('NftPurchased');
+        expect(await nft.ownerOf(1)).to.equal(event.args.buyer);
+      });
+    });
 
     describe("5:Transfer funds to manager",()=>{
       it("Transfer funds",async()=>{
@@ -105,13 +105,15 @@ describe("MarketPlace",()=>{
           const val=ethers.utils.parseEther("10");
           const tx2=await marketplace.connect(accounts[1]).purchase(1,{value:val});
           await tx2.wait();
-          await expect(marketplace.connect(accounts[1]).checkManagerBalance()).to.be.revertedWith("Only the manaer can transfer");
-          //await expect(marketplace.checkManagerBalance()).to.be.equal(0);
-          console.log(await marketplace.checkManagerBalance());
-          console.log(await ethers.provider.getBalance(accounts[0]));
+          await expect(marketplace.connect(accounts[1]).checkManagerBalance()).to.be.revertedWith("Only the manaer can call this");
+          const managerBalanceBefore=BigInt(await ethers.provider.getBalance(accounts[0].address));
+          const contractManagerBalance=await marketplace.checkManagerBalance();
+          await expect(contractManagerBalance).to.be.equal(managerBalanceBefore);
           const [event]= await marketplace.queryFilter('NftPurchased');
-          //console.log(event.args.finalPrice);
-           
+          const tx3=await marketplace.connect(accounts[0]).transferToManager();
+          await tx3;
+          const managerBalanceAfter=BigInt(await ethers.provider.getBalance(accounts[0].address));
+          await expect(managerBalanceAfter).to.be.greaterThan(managerBalanceBefore);
       });
-    });
+    }); 
 });
